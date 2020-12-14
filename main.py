@@ -1,81 +1,49 @@
-from random import seed
+import numpy as np
+import pandas as pd
 
-from data.data import Data
 from model.model import Model
 
 
-def create_model(input_shape):
-    model = Model()
-    # 2 layers of 3 nodes and 1 output layer
-    model.add(number_of_neurons=6, input_shape=input_shape)
+def create_model(**kwargs):
+    model = Model(**kwargs)
+    model.add(number_of_neurons=6)
     model.add(number_of_neurons=3)
-    model.add(number_of_neurons=2)
+    model.add(number_of_neurons=1)
 
     return model
 
 
-def train_model(**kwargs):
-    n_epochs = kwargs['n_epochs']
-    data = kwargs['data']
-    model = kwargs['model']
-    n_outputs = kwargs['n_outputs']
-    l_rate = kwargs['l_rate']
-
-    for epoch in range(n_epochs):
-        sum_error = 0
-        for row in data:
-            outputs = model.forward_propagation(row)
-            expected = [0 for i in range(n_outputs)]
-            expected[int(row[-1]-1)] = 1
-            sum_error += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
-            model.backward_propagate_error(expected)
-            model.update_weights(row, l_rate)
-        print('>epoch=%d, l_rate=%.3f, error=%.3f' % (epoch, l_rate, sum_error))
-
-
-def run_neural_network(**kwargs):
-    data = kwargs['data']
-    sample_size = kwargs['sample_size']
-    features = kwargs['features']
-    n_epochs = kwargs['n_epoch']
-    n_outputs = kwargs['n_outputs']
-    l_rate = kwargs['l_rate']
-
-    model = create_model(features)
-
-    train_model(model=model, data=data, sample_size=sample_size, n_epochs=n_epochs, n_outputs=n_outputs, l_rate=l_rate)
-
-    # for row in data:
-    #     outputs = model.forward_propagation(row)
-    #     prediction = outputs.index(max(outputs))
-    #     print('Expected=%d, Got=%d' % (row[-1], prediction+1))
-
-
 def main():
-    data_obj = Data()
-    data = data_obj.load_data()
-    sample_size, features = data_obj.obtain_input_shape(data)
-    # # seed(2)
-    # data = [[2.7810836, 2.550537003, 0],
-    #         [1.465489372, 2.362125076, 0],
-    #         [3.396561688, 4.400293529, 0],
-    #         [1.38807019, 1.850220317, 0],
-    #         [3.06407232, 3.005305973, 0],
-    #         [7.627531214, 2.759262235, 1],
-    #         [5.332441248, 2.088626775, 1],
-    #         [6.922596716, 1.77106367, 1],
-    #         [8.675418651, -0.242068655, 1],
-    #         [7.673756466, 3.508563011, 1]]
-    # sample_size, features = len(data), 2
-    n_outputs = 2
-    l_rate = 0.5
-    n_epoch = 20
+    # breast cancer dataset https://www.kaggle.com/uciml/breast-cancer-wisconsin-data
+    # for simplicity, we have used only 4 features.
+    data = pd.read_csv("data/data.csv", error_bad_lines=False)
+    labels = data['diagnosis']  # extracting the target or the groundtruth
+    data = data[['radius_mean', 'texture_mean', 'smoothness_mean', 'compactness_mean']]  # extracting the features
+    labels = np.array(labels)
+    data = np.array(data)
 
-    run_neural_network(data=data, sample_size=sample_size,
-                       features=features, n_epoch=n_epoch,
-                       l_rate=l_rate, n_outputs=n_outputs)
+    # creating an empty model object
+    learning_rate = 0.01  # we set learning rate as 0.01 so as to slowly converge, we can experiment with different rates.
+    epochs = 1000  # we arbitrary chose a high nmber of 1000. Could have increased this number till 15k, 20k, 100k and so on.
+    model = create_model(input_shape=4, learning_rate=learning_rate)
 
+    # Training on 400 samples out of 569 samples.
+    # This way is not the best way to train the model (since we are updating the weights on every sample, so we are performing stochastic gradient descent)
+    # More optimised ways would have been batch/mini-batch/randomised-batch gradient descent.
+    for j in range(epochs):
+        sum_error = 0  # we will see error on the whole dataset and see how it drops on further epochs.
+        for i in range(400):
+            # idea is simple, we first perform the forward pass, then update the weights during the backprop step.
+            model.feedforward(data[i])
+            model.backpropagation(labels[i])
+            sum_error += (labels[i] - model.output_matrix[-1][0]) ** 2  # we are taking squares to simply account for magnitude.
+        print("epoch ", j, "error is ", sum_error)
 
+    # uncommenting these lines, we can test our model
+
+    # for i in range(410,480):
+    #     model.feedforward(data[i])
+    #     print(model.output_matrix[-1][0], labels[i])
 
 
 if __name__ == "__main__":

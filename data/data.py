@@ -5,12 +5,11 @@ import pandas as pd
 class Data:
 
     def load_data(self, **kwargs):
-
         number_of_rows = kwargs.get('number_of_rows')
         if number_of_rows:
-            data = pd.read_csv("data/dataset - dataset.csv", error_bad_lines=False, nrows=number_of_rows)
+            data = pd.read_csv("data/data.csv", error_bad_lines=False, nrows=number_of_rows)
         else:
-            data = pd.read_csv("data/dataset - dataset.csv", error_bad_lines=False)
+            data = pd.read_csv("data/data.csv", error_bad_lines=False)
         data = data.sample(frac=1)
         data = self.convert_data_into_lists(data)
 
